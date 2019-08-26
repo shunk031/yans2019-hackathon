@@ -1,0 +1,39 @@
+{
+    "dataset_reader": {
+        "type": "quora",
+        "tokenizer": {
+            "type": "word",
+            "word_splitter": {
+                "type": "bert-basic",
+                "do_lower_case": true
+            }
+        },
+        "token_indexers": {
+            "bert": {
+                "type": "bert-pretrained",
+                "pretrained_model": "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt",
+                "use_starting_offsets": false,
+                "do_lowercase": true
+            }
+        }
+    },
+    "train_data_path": "data/train_10000.csv",
+    "validation_data_path": "data/dev.csv",
+    "model": {
+        "type": "bert_based_model",
+        "bert_model": "bert-base-uncased"
+    },
+    "iterator": {
+        "type": "bucket",
+        "sorting_keys": [["question1", "num_tokens"], ["question2", "num_tokens"]],
+        "batch_size": 32
+    },
+    "trainer": {
+        "optimizer": {
+            "type": "bert_adam",
+            "lr": 0.001
+        },
+        "should_log_parameter_statistics": true,
+        "should_log_learning_rate": true
+    }
+}
