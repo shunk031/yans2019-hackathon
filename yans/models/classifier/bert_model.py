@@ -10,6 +10,7 @@ from allennlp.modules.token_embedders.bert_token_embedder import (
 from allennlp.nn import RegularizerApplicator
 from allennlp.nn.initializers import InitializerApplicator
 from allennlp.training.metrics import CategoricalAccuracy
+from overrides import overrides
 from pytorch_pretrained_bert.modeling import BertModel
 
 
@@ -54,6 +55,7 @@ class BertModel(Model):
 
         return bert_model
 
+    @overrides
     def forward(
         self,
         question1: Dict[str, torch.Tensor],
@@ -98,6 +100,21 @@ class BertModel(Model):
                 metricfun(probs, label.unsqueeze(dim=-1))
 
         return output_dict
+
+    @overrides
+    def get_metrics(self, reset: bool = False) -> Dict[str, float]:
+
+        metric_scores = {
+            metric_name: metric.get_metric(reset)
+            for metric_name, metric in self.metrics.items()
+        }
+
+        for key, value in metric_scores.items():
+            if isinstance(metric_scores[key], tuple):
+                # f1 get_metric returns (precision, recall, f1)
+                metric_scores[key] = metric_scores[key][2]
+
+        return metric_scores
 
 
 # @Model.register("bert_for_my_classification")
