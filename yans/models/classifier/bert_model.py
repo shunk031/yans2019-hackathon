@@ -28,15 +28,14 @@ class BertModel(Model):
     ) -> None:
         super().__init__(vocab, regularizer)
         self.bert_model = self.init_pert_model(bert_model, trainable)
+        self._dropout = nn.Dropout(p=dropout)
 
         num_dense = self.bert_model.config.hidden_size * 2
         self._classification_layer = nn.Sequential(
             nn.BatchNorm1d(num_dense, num_dense),
-            nn.Dropout(p=dropout),
             nn.Linear(num_dense, num_dense),
             nn.ReLU(inplace=True),
             nn.BatchNorm1d(num_dense, num_dense),
-            nn.Dropout(p=dropout),
             nn.Linear(num_dense, 1),
             nn.Sigmoid(),
         )
@@ -82,8 +81,16 @@ class BertModel(Model):
             token_type_ids=token_type_q2_ids,
             attention_mask=mask_q2,
         )
+
+        pooled_q1 = self._dropout(pooled_q1)
+        pooled_q2 = self._dropout(pooled_q2)
+
         h = torch.cat((pooled_q1, pooled_q2), dim=1)
         logits = self._classification_layer(h)
+
+        import pdb
+
+        pdb.set_trace()
 
         output_dict = {"logits": logits}
         if label is not None:
