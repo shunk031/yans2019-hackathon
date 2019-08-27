@@ -31,8 +31,12 @@ class QuoraPairDataset(DatasetReader):
         logger.info(f"Reading instances from: {file_path}")
 
         df = pd.read_csv(file_path)
+        df = df.dropna()
+
         y = df.is_duplicate
         self.pos_weight = np.asarray([len(y) / sum(y) - 1])
+
+        logger.info(f"Class weight: {self.pos_weight}")
 
         for i in range(len(df)):
             dfi = df.iloc[i]

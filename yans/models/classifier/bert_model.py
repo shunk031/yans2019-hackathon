@@ -20,32 +20,27 @@ class BertModel(Model):
         self,
         vocab: Vocabulary,
         bert_model: Union[str, BertModel],
-        dropout: float = 0.0,
+        dropout: float = 0.5,
         index: str = "bert",
         trainable: bool = True,
         initializer: InitializerApplicator = InitializerApplicator(),
         regularizer: Optional[RegularizerApplicator] = None,
     ) -> None:
         super().__init__(vocab, regularizer)
-        self.bert_model = self.init_pert_model(bert_model, trainable)
+        self.bert_model = self.init_bert_model(bert_model, trainable)
         self._dropout = nn.Dropout(p=dropout)
 
         num_dense = self.bert_model.config.hidden_size * 2
         self._classification_layer = nn.Sequential(
-            nn.BatchNorm1d(num_dense, num_dense),
-            nn.Linear(num_dense, num_dense),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm1d(num_dense, num_dense),
-            nn.Linear(num_dense, 1),
-            nn.Sigmoid(),
+            nn.Linear(num_dense, 1), nn.Sigmoid()
         )
-        self.lossfun = nn.BCEWithLogitsLoss()
+        self._loss = nn.BCELoss()
         self.metrics = {"accuracy": CategoricalAccuracy()}
         self._index = index
 
-        initializer(self)
+        initializer(self._classification_layer)
 
-    def init_pert_model(self, bert_model, trainable) -> Model:
+    def init_bert_model(self, bert_model, trainable) -> Model:
         if isinstance(bert_model, str):
             bert_model = PretrainedBertModel.load(bert_model)
 
@@ -62,6 +57,7 @@ class BertModel(Model):
         pos_weight: torch.Tensor = None,
         label: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
+
         input_q1_ids = question1[self._index]
         input_q2_ids = question2[self._index]
 
@@ -88,17 +84,12 @@ class BertModel(Model):
         h = torch.cat((pooled_q1, pooled_q2), dim=1)
         logits = self._classification_layer(h)
 
-        import pdb
-
-        pdb.set_trace()
-
         output_dict = {"logits": logits}
+
         if label is not None:
             label = label.float()
 
-            bce_loss = self.lossfun(logits, label.unsqueeze(dim=-1))
-            weight = label * pos_weight.transpose(0, 1) + (1 - label)
-            loss = (bce_loss * weight).mean(dim=1).sum()
+            loss = self._loss(logits.squeeze(dim=-1), label)
             output_dict["loss"] = loss
 
             one_minus_logits = 1 - logits

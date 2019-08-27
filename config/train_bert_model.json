@@ -11,8 +11,7 @@
         "token_indexers": {
             "bert": {
                 "type": "bert-pretrained",
-                "pretrained_model": "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt",
-                "use_starting_offsets": false,
+                "pretrained_model": "bert-base-uncased",
                 "do_lowercase": true
             }
         }
@@ -21,17 +20,18 @@
     "validation_data_path": "data/dev.csv",
     "model": {
         "type": "bert_based_model",
-        "bert_model": "bert-base-uncased"
+        "bert_model": "bert-base-uncased",
+        "trainable": true,
+        "dropout": 0.5
     },
     "iterator": {
-        "type": "bucket",
-        "sorting_keys": [["question1", "num_tokens"], ["question2", "num_tokens"]],
+        "type": "basic",
         "batch_size": 32
     },
     "trainer": {
         "optimizer": {
             "type": "bert_adam",
-            "lr": 0.001
+            "lr": 2e-5
         },
         "should_log_parameter_statistics": true,
         "should_log_learning_rate": true
